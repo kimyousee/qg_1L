@@ -51,9 +51,9 @@ Q = temp - F0*Phi + bet*ytemp + f0/Hm*etaB
 grow = np.zeros([nEV,nk])
 freq = np.zeros([nEV,nk])
 mode = np.zeros([Ny+1,nEV,nk], dtype=complex)
-grOut = open('grow.dat', 'wb')
-frOut = open('freq.dat', 'wb')
-mdOut = open('mode.dat', 'wb')
+# grOut = open('grow.dat', 'wb')
+# frOut = open('freq.dat', 'wb')
+# mdOut = open('mode.dat', 'wb')
 cnt = 0
 
 for kx in kk[0:nk]:
@@ -85,8 +85,8 @@ for kx in kk[0:nk]:
 		freq[i,cnt] = eigVal.real*kx
 
 		if rank == 0:
-			grow[i,cnt].tofile(grOut) # save values to file
-			freq[i,cnt].tofile(frOut)
+			# grow[i,cnt].tofile(grOut) # save values to file
+			# freq[i,cnt].tofile(frOut)
 			plt.plot(kk*Lj, grow[i]*3600*24, 'o')
 
 		eigVec=E.getEigenvector(i,vr,vi)
@@ -97,11 +97,11 @@ for kx in kk[0:nk]:
 
 		for j in range(start,end):
 			mode[j,i,cnt] = 1j*vi[j]; mode[j,i,cnt] = vr[j]
-			if rank == 0:
-				mode[j,i,cnt].tofile(mdOut)
+			# # if rank == 0:
+			# mode[j,i,cnt].tofile(mdOut)
 	cnt = cnt+1
 
-grOut.close(); frOut.close(); mdOut.close()
+# grOut.close(); frOut.close(); mdOut.close()
 
 if rank == 0:
 	ky = np.pi/Ly
