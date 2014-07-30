@@ -40,13 +40,15 @@ temp = PETSc.Vec().createMPI(Ny-1,comm=PETSc.COMM_WORLD)
 Dy2.mult(Phi,temp)
 temp.assemble()
 
-# ytemp used to only get middle part of y
-ytemp = PETSc.Vec().createMPI(Ny-1,comm=PETSc.COMM_WORLD) 
-ystart,yend = ytemp.getOwnershipRange()
-for i in range(ystart,yend): ytemp[i] = y[i+1]
-ytemp.assemble()
+temp2 = PETSc.Vec().createMPI(Ny+1, comm=PETSc.COMM_WORLD)
+ts,te = temp2.getOwnershipRange()
+if ts == 0: temp2[0] = temp[0]; ts+=1
+if te == Ny+1: temp2[Ny] = temp[Ny-2]; te -= 1
+for i in range(ts,te):
+    temp2[i] = temp[i-1]
+temp2.assemble()
 
-Q = temp - F0*Phi + bet*ytemp + f0/Hm*etaB
+Q = temp2 - F0*Phi + bet*y + f0/Hm*etaB # size Ny+1
 
 grow = np.zeros([nEV,nk])
 freq = np.zeros([nEV,nk])
@@ -58,55 +60,55 @@ cnt = 0
 
 for kx in kk[0:nk]:
 
-	kx2=kx**2
+    kx2=kx**2
 
-	Lap = fx.Lap(Dy2, kx2, Ny)
-	B = fx.B(Lap, F0, Ny)
-	A = fx.A(U,Lap, F0,Dy,Q,Ny)
+    Lap = fx.Lap(Dy2, kx2, Ny)
+    B = fx.B(Lap, F0, Ny)
+    A = fx.A(U,Lap, F0,Dy,Q,Ny)
 
-	# Set up slepc, generalized eig problem
-	E = SLEPc.EPS(); E.create(comm=SLEPc.COMM_WORLD)
+    # Set up slepc, generalized eig problem
+    E = SLEPc.EPS(); E.create(comm=SLEPc.COMM_WORLD)
 
-	E.setOperators(A,B); E.setDimensions(nEV, PETSc.DECIDE)
-	E.setProblemType(SLEPc.EPS.ProblemType.GNHEP); E.setFromOptions()
-	E.setWhichEigenpairs(SLEPc.EPS.Which.LARGEST_IMAGINARY)
+    E.setOperators(A,B); E.setDimensions(nEV, PETSc.DECIDE)
+    E.setProblemType(SLEPc.EPS.ProblemType.GNHEP); E.setFromOptions()
+    E.setWhichEigenpairs(SLEPc.EPS.Which.LARGEST_IMAGINARY)
 
-	E.solve()
+    E.solve()
 
-	nconv = E.getConverged()
-	vr, wr = A.getVecs()
-	vi, wi = A.getVecs()
+    nconv = E.getConverged()
+    vr, wr = A.getVecs()
+    vi, wi = A.getVecs()
 
-	if nconv <= nEV: evals = nconv
-	else: evals = nEV
-	for i in range(evals):
-		eigVal = E.getEigenvalue(i)
-		grow[i,cnt] = eigVal.imag*kx
-		freq[i,cnt] = eigVal.real*kx
+    if nconv <= nEV: evals = nconv
+    else: evals = nEV
+    for i in range(evals):
+        eigVal = E.getEigenvalue(i)
+        grow[i,cnt] = eigVal.imag*kx
+        freq[i,cnt] = eigVal.real*kx
 
-		if rank == 0:
-			# grow[i,cnt].tofile(grOut) # save values to file
-			# freq[i,cnt].tofile(frOut)
-			plt.plot(kk*Lj, grow[i]*3600*24, 'o')
+        if rank == 0:
+            # grow[i,cnt].tofile(grOut) # save values to file
+            # freq[i,cnt].tofile(frOut)
+            plt.plot(kk*Lj, grow[i]*3600*24, 'o')
 
-		eigVec=E.getEigenvector(i,vr,vi)
+        eigVec=E.getEigenvector(i,vr,vi)
 
-		start,end = vi.getOwnershipRange()
-		if start == 0: mode[0,i,cnt] = 0; start+=1
-		if end == Ny: mode[Ny,i,cnt] = 0; end -=1
+        start,end = vi.getOwnershipRange()
+        if start == 0: mode[0,i,cnt] = 0; start+=1
+        if end == Ny: mode[Ny,i,cnt] = 0; end -=1
 
-		for j in range(start,end):
-			mode[j,i,cnt] = 1j*vi[j]; mode[j,i,cnt] = vr[j]
-			# # if rank == 0:
-			# mode[j,i,cnt].tofile(mdOut)
-	cnt = cnt+1
+        for j in range(start,end):
+            mode[j,i,cnt] = 1j*vi[j]; mode[j,i,cnt] = vr[j]
+            # if rank == 0:
+            #     mode[j,i,cnt].tofile(mdOut)
+    cnt = cnt+1
 
 # grOut.close(); frOut.close(); mdOut.close()
 
 if rank == 0:
-	ky = np.pi/Ly
-	plt.ylabel('1/day')
-	plt.xlabel('k')
-	plt.title('Growth Rate: 1-Layer QG')
-	plt.savefig('Grow1L_QG.eps', format='eps', dpi=1000)
-	#plt.show()
+    ky = np.pi/Ly
+    plt.ylabel('1/day')
+    plt.xlabel('k')
+    plt.title('Growth Rate: 1-Layer QG')
+    plt.savefig('Grow1L_QG.eps', format='eps', dpi=1000)
+    #plt.show()
