@@ -92,8 +92,8 @@ def Lap(Dy2, kx2, Ny):
     return Lap
 
 def B(Lap, F0, Ny):
-    B = PETSc.Mat().create()
-    B.setSizes([Ny-1,Ny-1]); B.setFromOptions(); B.setUp()
+    B = PETSc.Mat().createAIJ([Ny-1,Ny-1])
+    B.setFromOptions(); B.setUp()
 
     tempLap = -1*Lap
     B=tempLap.copy()
@@ -116,8 +116,8 @@ def diag(v):
     return M
 
 def A(U,Lap, F0,Dy,Q,Ny): #A = [diag(U(2:Ny))*(F0*I - Lap)] - diag(dQ(2:Ny))
-    A = PETSc.Mat().create()
-    A.setSizes([Ny-1,Ny-1]); A.setFromOptions(); A.setUp()
+    A = PETSc.Mat().createAIJ([Ny-1,Ny-1])
+    A.setFromOptions(); A.setUp()
 
     Ud = diag(U)
 
