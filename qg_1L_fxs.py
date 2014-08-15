@@ -14,7 +14,7 @@ def vec(init, incr, size): #used for making y. similar to [start:end:incr]
     vec = PETSc.Vec().createMPI(size, bsize=PETSc.DECIDE, comm=PETSc.COMM_WORLD)
     start,end = vec.getOwnershipRange()
     vec[start] = init + incr*start; start +=1
-    for i in range(start,end):
+    for i in xrange(start,end):
         vec[i] = vec[i-1]+incr
     vec.assemble()
     return vec
