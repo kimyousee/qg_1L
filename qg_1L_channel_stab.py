@@ -1,3 +1,5 @@
+import sys, slepc4py
+slepc4py.init(sys.argv)
 from petsc4py import PETSc
 from slepc4py import SLEPc
 import numpy as np
@@ -44,7 +46,7 @@ temp2 = PETSc.Vec().createMPI(Ny+1, comm=PETSc.COMM_WORLD)
 ts,te = temp2.getOwnershipRange()
 if ts == 0: temp2[0] = temp[0]; ts+=1
 if te == Ny+1: temp2[Ny] = temp[Ny-2]; te -= 1
-for i in range(ts,te):
+for i in xrange(ts,te):
     temp2[i] = temp[i-1]
 temp2.assemble()
 
@@ -72,7 +74,8 @@ for kx in kk[0:nk]:
     E.setOperators(A,B); E.setDimensions(nEV, PETSc.DECIDE)
     E.setProblemType(SLEPc.EPS.ProblemType.GNHEP); E.setFromOptions()
     E.setWhichEigenpairs(SLEPc.EPS.Which.LARGEST_IMAGINARY)
-
+    E.setTolerances(1e-8, max_it=50)
+    
     E.solve()
 
     nconv = E.getConverged()
@@ -81,7 +84,7 @@ for kx in kk[0:nk]:
 
     if nconv <= nEV: evals = nconv
     else: evals = nEV
-    for i in range(evals):
+    for i in xrange(evals):
         eigVal = E.getEigenvalue(i)
         grow[i,cnt] = eigVal.imag*kx
         freq[i,cnt] = eigVal.real*kx
@@ -97,7 +100,7 @@ for kx in kk[0:nk]:
         if start == 0: mode[0,i,cnt] = 0; start+=1
         if end == Ny: mode[Ny,i,cnt] = 0; end -=1
 
-        for j in range(start,end):
+        for j in xrange(start,end):
             mode[j,i,cnt] = 1j*vi[j]; mode[j,i,cnt] = vr[j]
             # if rank == 0:
             #     mode[j,i,cnt].tofile(mdOut)
